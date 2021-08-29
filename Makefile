@@ -101,13 +101,8 @@ DOCKER_QT_TEST  ?= simelotech/qt-test
 
 deps: ## Add dependencies
 	dep ensure
-	rm -rf vendor/github.com/therecipe
 
 # Targets
-run: $(BINPATH) ## Run FiberCrypto Wallet.
-	@echo "Running $(APP_NAME)..."
-	@$(BINPATH)
-
 install-deps-no-envs: ## Install therecipe/qt with -tags=no_env set
 	go get -v -tags=no_env github.com/therecipe/qt/cmd/...
 	go get -t -d -v ./...
@@ -121,104 +116,25 @@ install-docker-deps: ## Install docker images for project compilation using dock
 
 install-deps-Linux: ## Install Linux dependencies
 	sudo apt-get update
-	sudo apt-get install libgl-dev -y
-	go get -u -v github.com/therecipe/qt/cmd/...
-	(qtsetup -test=false | true)
 	go get -t -d -v ./...
 
 install-deps-Darwin: ## Install osx dependencies
 	xcode-select --install || true
-	go get -u -v github.com/therecipe/qt/cmd/...
-	qtsetup -test=false || true
 	go get -t -d -v ./...
 
 install-deps-Windows: ## Install Windowns dependencies
 	set GO111MODULE=off
-	go get -v -tags=no_env github.com/therecipe/qt/cmd/...
-	@echo "Running qtsetup"
-	(qtsetup -test=false | true)
 	go get -t -d -v ./...
-	wget -O magick.zip https://sourceforge.net/projects/imagemagick/files/im7-exes/ImageMagick-7.0.7-25-portable-Q16-x64.zip
-	unzip magick.zip convert.exe
 
 install-deps: install-deps-$(UNAME_S) install-linters ## Install dependencies
 	@echo "Dependencies installed"
 
 build-docker: install-docker-deps ## Build project using docker
 	@echo "Building $(APP_NAME)..."
-	qtdeploy -docker build $(DEFAULT_TARGET)
+	@echo "No build rules defined"
 	@echo "Done."
 
-build-icon-Windows_NT: ## Build the application icon in Windows
-	mkdir -p $(ICONS_BUILDPATH)
-	$(CONVERT) "$(APP_ICON_PATH)/appIcon-wallet.png" -resize 16x16 "$(ICONS_BUILDPATH)/appIcon_1_16x16.png"
-	$(CONVERT) "$(APP_ICON_PATH)/appIcon-wallet.png" -resize 24x24 "$(ICONS_BUILDPATH)/appIcon_2_24x24.png"
-	$(CONVERT) "$(APP_ICON_PATH)/appIcon.png" -resize 32x32 "$(ICONS_BUILDPATH)/appIcon_3_32x32.png"
-	$(CONVERT) "$(APP_ICON_PATH)/appIcon.png" -resize 48x48 "$(ICONS_BUILDPATH)/appIcon_4_48x48.png"
-	$(CONVERT) "$(APP_ICON_PATH)/appIcon.png" -resize 64x64 "$(ICONS_BUILDPATH)/appIcon_5_64x64.png"
-	$(CONVERT) "$(APP_ICON_PATH)/appIcon.png" -resize 96x96 "$(ICONS_BUILDPATH)/appIcon_6_96x96.png"
-	$(CONVERT) "$(APP_ICON_PATH)/appIcon.png" -resize 128x128 "$(ICONS_BUILDPATH)/appIcon_7_128x128.png"
-	$(CONVERT) "$(APP_ICON_PATH)/appIcon.png" -resize 256x256 "$(ICONS_BUILDPATH)/appIcon_8_256x256.png"
-	$(CONVERT) "$(APP_ICON_PATH)/appIcon.png" -resize 512x512 "$(ICONS_BUILDPATH)/appIcon_9_512x512.png"
-	$(CONVERT) "$(ICONS_BUILDPATH)/appIcon_*.png" "$(APP_ICON_PATH)/appIcon.ico"
-
-build-icon-Darwin: ## Build the application icon in Darwin
-	mkdir -p $(ICONSET)
-	# For macOS icons we will use the `sips` and `iconutil` tools as provided by Apple
-	$(SIPS) -z 16 16 "$(APP_ICON_PATH)/appIcon-wallet.png" --out "$(ICONSET)/icon_16x16.png"
-	$(SIPS) -z 32 32 "$(APP_ICON_PATH)/appIcon.png" --out "$(ICONSET)/icon_16x16@2x.png"
-	$(SIPS) -z 32 32 "$(APP_ICON_PATH)/appIcon.png" --out "$(ICONSET)/icon_32x32.png"
-	$(SIPS) -z 64 64 "$(APP_ICON_PATH)/appIcon.png" --out "$(ICONSET)/icon_32x32@2x.png"
-	$(SIPS) -z 128 128 "$(APP_ICON_PATH)/appIcon.png" --out "$(ICONSET)/icon_128x128.png"
-	$(SIPS) -z 256 256 "$(APP_ICON_PATH)/appIcon.png" --out "$(ICONSET)/icon_128x128@2x.png"
-	$(SIPS) -z 256 256 "$(APP_ICON_PATH)/appIcon.png" --out "$(ICONSET)/icon_256x256.png"
-	$(SIPS) -z 512 512 "$(APP_ICON_PATH)/appIcon.png" --out "$(ICONSET)/icon_256x256@2x.png"
-	$(SIPS) -z 512 512 "$(APP_ICON_PATH)/appIcon.png" --out "$(ICONSET)/icon_512x512.png"
-	$(SIPS) -z 1024 1024 $(APP_ICON_PATH)/appIcon.png --out "$(ICONSET)/icon_512x512@2x.png"
-	$(ICONUTIL) --convert icns --output "$(APP_ICON_PATH)/appIcon.icns" "$(ICONSET)"
-
-build-icon-Linux: ## Build the application icon in Linux
-	@echo "Icons cannot be embedded in ELF executables."
-
-build-icon: build-icon-$(OS) ## Build the application icon (Windows_NT and Darwin systems)
-	@echo "Builded $(OS) icon..."
-
-build-qt:
-	@echo "Building on $(UNAME_S)"
-	@echo "Building $(APP_NAME)..."
-# Add the flag `-quickcompiler` when making a release
-	qtdeploy build $(DEFAULT_TARGET)
-	@echo "Done."
-
-$(BINPATH_Linux): $(SRCFILES)
-	make build-qt
-
-build-res-Windows_NT: $(RC_FILE)
-	@echo "Building on windows"
-	$(WINDRES) -i "$(RC_FILE)" -o "$(RC_OBJ)"
-
-$(BINPATH_Windows_NT): $(SRCFILES)
-	make build-icon
-	make build-res-Windows_NT
-	make build-qt
-
-build-Windows-travis: $(SRCFILES)
-	make build-icon
-	make build-res-Windows_NT
-	make build-qt
-
-build-res-Darwin: $(PLIST) $(APP_ICON_PATH)/appIcon.icns
-	@echo "Building on Darwin"
-	mkdir -p "$(DARWIN_RES)/Content/Resources"
-	cp "$(PLIST)" "$(DARWIN_RES)/Content/"
-	cp "$(APP_ICON_PATH)/appIcon.icns" "$(DARWIN_RES)/Content/"
-
-$(BINPATH_Darwin): $(SRCFILES)
-	make build-icon
-	make build-res-Darwin
-	make build-qt
-
-build: $(BINPATH)  ## Build FiberCrypto Wallet
+build: $(LIBPATH)  ## Build FiberCrypto Wallet
 	@echo "Output => $(BINPATH)"
 
 prepare-release: ## Change the resources in the app and prepare to release the app
@@ -295,11 +211,6 @@ test-cover-travis: clean-test
 test-cover: test test-html-cover ## Show more details of test coverage
 
 test: clean-test $(COVERAGEFILE) test-core test-sky test-data ## Run project test suite
-
-run-docker: DOCKER_GOPATH=$(shell docker inspect $(DOCKER_QT):$(DEFAULT_ARCH) | grep '"GOPATH=' | head -n1 | cut -d = -f2 | cut -d '"' -f1)
-run-docker: install-docker-deps ## Run CMD inside Docker container
-	@echo "Docker container GOPATH found at $(DOCKER_GOPATH)"
-	docker run --network="host" --rm -v $(PWD):$(DOCKER_GOPATH)/$(GOPATH_SRC) $(DOCKER_QT_TEST):$(DEFAULT_ARCH) bash -c 'cd $(DOCKER_GOPATH)/$(GOPATH_SRC) ; $(CMD)'
 
 install-linters: ## Install linters
 	go get -u github.com/FiloSottile/vendorcheck
